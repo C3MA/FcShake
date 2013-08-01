@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Toast;
+import de.c3ma.animation.RainbowEllipse;
 import de.c3ma.fullcircle.RawClient;
 import de.c3ma.proto.fctypes.Frame;
 import de.c3ma.proto.fctypes.FullcircleSerialize;
@@ -22,6 +23,7 @@ import de.c3ma.proto.fctypes.Meta;
 import de.c3ma.proto.fctypes.Pixel;
 import de.c3ma.proto.fctypes.Start;
 import de.c3ma.proto.fctypes.Timeout;
+import de.c3ma.types.SimpleColor;
 
 public class WallConnector extends Activity {
 
@@ -63,7 +65,16 @@ public class WallConnector extends Activity {
 
         // send something... NOW
         if (mSendFrames) {
-            Frame f = new Frame();
+
+            final Frame f = new Frame();
+            new RainbowEllipse((mWidth / 2) - 1, (mHeight / 2) - 1, (mWidth / 2) - 2, (mWidth / 2) - 2) {
+
+                @Override
+                protected void drawPixel(int x, int y, SimpleColor c) {
+                    f.add(new Pixel(x, y, c));                        
+                }                
+            }.drawEllipse(1);
+            
             f.add(new Pixel(0, 0, 255, counter++, 0));
             counter = counter % mWidth;
             wall.sendFrame(f);
@@ -100,6 +111,12 @@ public class WallConnector extends Activity {
                         }
                         
                         connect.setText(R.string.disconnect);
+                        
+                        //TODO move the following code into the handling of motion sensors
+                        while(true) {
+                            Thread.sleep(50);
+                            handleNetwork();
+                        }
                         
                     } catch (UnknownHostException e) {
                         System.err.println(e.getMessage());
