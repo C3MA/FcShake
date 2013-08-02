@@ -59,16 +59,18 @@ public class WallConnector extends Activity implements SensorEventListener {
         float z = event.values[2];
 //        Log.e("Sensor", "" + x + "\t" + y + "\t" +z);
         // X-axis
-        if (x < -2) {
+        if (x < -4) {
             numberX--;
             if (numberX < radius)
                 numberX = radius;
-            speed = (int) (x / 10);
-        } else if (x > 2) {
+            speed += (int) x;
+            Log.i("Sensor", "Left : " + x);
+        } else if (x > 4) {
             numberX++;
             if (numberX > mWidth - radius)
                 numberX = mWidth - radius;
-            speed = (int) (x / 10);
+            speed += (int) x;
+            Log.v("Sensor", "Right : " + x);
         } else if (Math.abs(y) > 5) {
             //numberY++;
             speed += (int) (y / 10);
@@ -139,7 +141,7 @@ public class WallConnector extends Activity implements SensorEventListener {
             }
         }
 
-        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (speed / 10) + "\t" + numberX + "x" + numberY + "\tsendFrames=" + mSendFrames);
+        //Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (speed / 10) + "\t" + numberX + "x" + numberY + "\tsendFrames=" + mSendFrames);
         
         // send something... NOW
         if (mSendFrames) {
@@ -151,7 +153,7 @@ public class WallConnector extends Activity implements SensorEventListener {
                     protected void drawPixel(int x, int y, SimpleColor c) {
                         f.add(new Pixel(x, y, c));
                     }
-                }.drawEllipse(Math.abs(speed / 10));
+                }.drawEllipse(Math.abs(speed));
             wall.sendFrame(f);
         }
     }
