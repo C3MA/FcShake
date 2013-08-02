@@ -3,7 +3,7 @@
 
     <string name="app_name">FcShake</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="hello_world">Willkommen bei FcShake, um die Fullcircle installation vom Smartphone aus zu steuern.</string>
 	<string name="connect">Verbinden</string>
 	<string name="connecting">Starte Verbindung...</string>
 	<string name="disconnect">Trennen</string>
