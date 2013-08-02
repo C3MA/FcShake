@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -114,19 +115,23 @@ public class WallConnector extends Activity implements SensorEventListener {
                  * want to start to send something
                  */
                 wall.requestStart("android", 1, meta);
-                
-                if (mGuiStatus != null)
+                if (mGuiStatus != null) {
                     mGuiStatus.setText(R.string.connecting);
-                if (mGuiConnect != null)
-                    mGuiConnect.setText(R.string.disconnect);
+                }
             } else if (got instanceof Start) {
                 System.out.println("We have a GOOO send some data!");
                 mSendFrames = true;
                 numberX = (mWidth / 2);
                 numberY = (mHeight / 2);
                 radius = (mWidth / 2) - 1;
-                if (mGuiStatus != null)
+                
+                if (mGuiStatus != null) {
+                    mGuiStatus.setBackgroundColor(Color.GREEN);
                     mGuiStatus.setText(R.string.connectedToWall);
+                }
+                if (mGuiConnect != null) {
+                    mGuiConnect.setText(R.string.disconnect);
+                }
             } else if (got instanceof Timeout) {
                 System.out.println("Too slow, so we close the session");
                 wall.close();
@@ -167,11 +172,12 @@ public class WallConnector extends Activity implements SensorEventListener {
                     SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                     String domain = settings.getString("wallip", null);
                     try {
-                        wall = new RawClient(domain);
-                        Toast.makeText(getApplicationContext(), R.string.connecting, Toast.LENGTH_LONG).show();
+                        mGuiStatus.setBackgroundColor(Color.parseColor("#FF6600"));
                         mGuiStatus.setText(R.string.connecting);
+                        if (wall != null)
+                            wall.close();
+                        wall = new RawClient(domain);
                         wall.requestInformation();
-
                     } catch (UnknownHostException e) {
                         System.err.println(e.getMessage());
                         Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
@@ -186,6 +192,8 @@ public class WallConnector extends Activity implements SensorEventListener {
                     wall.close();
                     wall = null;
                     mGuiConnect.setText(R.string.connect);
+                    mGuiStatus.setText(R.string.hello_world);
+                    mGuiStatus.setBackgroundColor(Color.RED);
                 }
             }
         });
