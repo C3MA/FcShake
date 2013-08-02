@@ -48,33 +48,26 @@ public class WallConnector extends Activity implements SensorEventListener {
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() != Sensor.TYPE_ACCELEROMETER)
             return;
+        
+        float x = event.values[0];
+        float y = event.values[1];
+        float z = event.values[2];
+//        Log.e("Sensor", "" + x + "\t" + y + "\t" +z);
         // X-axis
-        if (event.values[0] > 0) {
-          number += (int) event.values[0];
-          updown = 0;
-          horizontal = 0;
-        } else if (event.values[0] < 0) {
-            number += (int) event.values[0];
+        if (Math.abs(x) > 2) {
+            number += (int) x;
             updown = 0;
             horizontal = 0;
-        }
-
-        float y = event.values[1];
-        if (y > 0) {
+        } else if (Math.abs(y) > 2) {
             updown += (int) y;
             horizontal = 0;
-        } else {
-            updown += (int) y;
-            horizontal = 0;
-        }
-
-        float z = event.values[2];
-        if (z > 0) {
+            number = 0;
+        } else if (Math.abs(z) > 2) {
             horizontal += z;
-        } else {
-            horizontal += z;
+            number = 0;
+            updown = 0;
         }
-
+        
         long actualTime = System.currentTimeMillis();
         if (actualTime - lastUpdate < 50) {
             return;
@@ -126,13 +119,30 @@ public class WallConnector extends Activity implements SensorEventListener {
             }
         }
 
-        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (number / 10) + "\t" + updown);
+        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (number / 10) + "\t" + updown + "\tsendFrames=" + mSendFrames);
         
         // send something... NOW
         if (mSendFrames) {
             final Frame f = new Frame();
-            if (updown == 0)
-            {
+            
+            if (horizontal != 0 && updown == 0) {
+                Log.v("Wall", "horizontal");
+                for (int i = 0; i < Math.min(horizontal / 10, mHeight) ; i++) {
+                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mWidth);
+                    for(int j=0; j < mHeight; j++) {
+                        f.add(new Pixel(i, j, color));
+                    }
+                }
+            } else if (updown != 0 && horizontal == 0) {
+                Log.v("Wall", "updown");
+                for (int i = 0; i < Math.min(updown / 10, mWidth); i++) {
+                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mHeight);
+                    for(int j=0; j < mWidth; j++) {
+                        f.add(new Pixel(j, i, color));
+                    }
+                }
+            } else {
+                Log.v("Wall", "Circle");
                 new RainbowEllipse((mWidth / 2), (mHeight / 2), (mWidth / 2) - 1, (mWidth / 2) - 1) {
                 
                     @Override
@@ -140,18 +150,6 @@ public class WallConnector extends Activity implements SensorEventListener {
                         f.add(new Pixel(x, y, c));
                     }
                 }.drawEllipse(Math.abs(number / 10));
-            } else if (horizontal > 0){
-                for (int i = 0; i < horizontal; i++) {
-                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mWidth);
-                    for(int j=0; j < mHeight; j++)
-                        f.add(new Pixel(i, j, color));
-                }
-            } else {
-                for (int i = 0; i < updown; i++) {
-                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mHeight);
-                    for(int j=0; j < mWidth; j++)
-                        f.add(new Pixel(j, i, color));
-                }
             }
             wall.sendFrame(f);
         }
@@ -176,11 +174,7 @@ public class WallConnector extends Activity implements SensorEventListener {
                         Toast.makeText(getApplicationContext(), R.string.connecting, Toast.LENGTH_LONG).show();
 
                         wall.requestInformation();
-                        while (wall != null && !mSendFrames) {
-                            Thread.sleep(10);
-                            handleNetwork();
 
-                        }
 
                         connect.setText(R.string.disconnect);
 
@@ -193,12 +187,6 @@ public class WallConnector extends Activity implements SensorEventListener {
                         System.err.println(e.getMessage());
                         Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                         wall = null;
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        Toast.makeText(getApplicationContext(), R.string.stopped, Toast.LENGTH_SHORT).show();
-                        wall.close();
-                        wall = null;
-                        connect.setText(R.string.connect);
                     }
                 } else {
                     wall.close();
