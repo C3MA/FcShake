@@ -39,7 +39,10 @@ public class WallConnector extends Activity implements SensorEventListener {
     private int mHeight;
 
     private long lastUpdate;
+    
     private int number;
+    private int updown;
+    private int horizontal;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -47,31 +50,29 @@ public class WallConnector extends Activity implements SensorEventListener {
             return;
         // X-axis
         if (event.values[0] > 0) {
-          /* mSensorValuesLeft.setText("X-axis (+)ve: "
-                    + Integer.toString((int) event.values[0]));*/
           number += (int) event.values[0];
+          updown = 0;
+          horizontal = 0;
         } else if (event.values[0] < 0) {
-            /*mSensorValuesRight.setText("X-axis (-)ve:: "
-                    + Integer.toString(((int) event.values[0]) * -1));*/
             number += (int) event.values[0];
+            updown = 0;
+            horizontal = 0;
         }
 
         float y = event.values[1];
         if (y > 0) {
-            /*mSensorValuesUp.setText("Y-axis (+)ve: "
-                    + Integer.toString((int) y));*/
+            updown += (int) y;
+            horizontal = 0;
         } else {
-            /* mSensorValuesDown.setText("Y-axis (-)ve: "
-                    + Integer.toString((int) y * -1));*/
+            updown += (int) y;
+            horizontal = 0;
         }
 
         float z = event.values[2];
         if (z > 0) {
-            /*mSensorValuesZUp.setText("Z-axis (+)ve: "
-                    + Integer.toString((int) z));*/
+            horizontal += z;
         } else {
-            /*mSensorValuesZDown.setText("Z-axis (-)ve: "
-                    + Integer.toString((int) z * -1));*/
+            horizontal += z;
         }
 
         long actualTime = System.currentTimeMillis();
@@ -125,20 +126,34 @@ public class WallConnector extends Activity implements SensorEventListener {
             }
         }
 
-        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (number / 10));
+        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (number / 10) + "\t" + updown);
         
         // send something... NOW
         if (mSendFrames) {
-        final Frame f = new Frame();
-        new RainbowEllipse((mWidth / 2), (mHeight / 2), (mWidth / 2) - 1, (mWidth / 2) - 1) {
-        
-            @Override
-            protected void drawPixel(int x, int y, SimpleColor c) {
-                f.add(new Pixel(x, y, c));
+            final Frame f = new Frame();
+            if (updown == 0)
+            {
+                new RainbowEllipse((mWidth / 2), (mHeight / 2), (mWidth / 2) - 1, (mWidth / 2) - 1) {
+                
+                    @Override
+                    protected void drawPixel(int x, int y, SimpleColor c) {
+                        f.add(new Pixel(x, y, c));
+                    }
+                }.drawEllipse(Math.abs(number / 10));
+            } else if (horizontal > 0){
+                for (int i = 0; i < horizontal; i++) {
+                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mWidth);
+                    for(int j=0; j < mHeight; j++)
+                        f.add(new Pixel(i, j, color));
+                }
+            } else {
+                for (int i = 0; i < updown; i++) {
+                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mHeight);
+                    for(int j=0; j < mWidth; j++)
+                        f.add(new Pixel(j, i, color));
+                }
             }
-        }.drawEllipse(Math.abs(number / 10));
-        
-        wall.sendFrame(f);
+            wall.sendFrame(f);
         }
     }
 
