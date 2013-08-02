@@ -13,6 +13,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,35 +35,59 @@ public class WallConnector extends Activity implements SensorEventListener {
 
     private RawClient wall = null;
     private boolean mSendFrames;
-    private int counter = 0;
     private int mWidth;
     private int mHeight;
 
-    private float[] gravity = new float[3];
-    private float[] linear_acceleration = new float[3];
+    private long lastUpdate;
+    private int number;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        // In this example, alpha is calculated as t / (t + dT),
-        // where t is the low-pass filter's time-constant and
-        // dT is the event delivery rate.
+        if (event.sensor.getType() != Sensor.TYPE_ACCELEROMETER)
+            return;
+        // X-axis
+        if (event.values[0] > 0) {
+          /* mSensorValuesLeft.setText("X-axis (+)ve: "
+                    + Integer.toString((int) event.values[0]));*/
+          number += (int) event.values[0];
+        } else if (event.values[0] < 0) {
+            /*mSensorValuesRight.setText("X-axis (-)ve:: "
+                    + Integer.toString(((int) event.values[0]) * -1));*/
+            number += (int) event.values[0];
+        }
 
-        final float alpha = 0.8f;
+        float y = event.values[1];
+        if (y > 0) {
+            /*mSensorValuesUp.setText("Y-axis (+)ve: "
+                    + Integer.toString((int) y));*/
+        } else {
+            /* mSensorValuesDown.setText("Y-axis (-)ve: "
+                    + Integer.toString((int) y * -1));*/
+        }
 
-        // Isolate the force of gravity with the low-pass filter.
-        gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
-        gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
-        gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
+        float z = event.values[2];
+        if (z > 0) {
+            /*mSensorValuesZUp.setText("Z-axis (+)ve: "
+                    + Integer.toString((int) z));*/
+        } else {
+            /*mSensorValuesZDown.setText("Z-axis (-)ve: "
+                    + Integer.toString((int) z * -1));*/
+        }
 
-        // Remove the gravity contribution with the high-pass filter.
-        linear_acceleration[0] = event.values[0] - gravity[0];
-        linear_acceleration[1] = event.values[1] - gravity[1];
-        linear_acceleration[2] = event.values[2] - gravity[2];
-        System.out.println(" X = " + linear_acceleration[0] 
-                + " y = " + linear_acceleration[1] 
-                + " z = " + linear_acceleration[2]);
+        long actualTime = System.currentTimeMillis();
+        if (actualTime - lastUpdate < 50) {
+            return;
+        }
+        lastUpdate = actualTime;
+        try {
+            handleNetwork();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            wall.close();
+            wall = null;
+        }
     }
-
+    
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // TODO Auto-generated method stub
@@ -70,7 +95,8 @@ public class WallConnector extends Activity implements SensorEventListener {
     }
 
     private void handleNetwork() throws IOException {
-
+        if (wall == null)
+            return;
         FullcircleSerialize got = wall.readNetwork();
         if (got != null) {
             System.out.println(got);
@@ -99,21 +125,20 @@ public class WallConnector extends Activity implements SensorEventListener {
             }
         }
 
+        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (number / 10));
+        
         // send something... NOW
         if (mSendFrames) {
-
-            final Frame f = new Frame();
-            new RainbowEllipse((mWidth / 2) - 1, (mHeight / 2) - 1, (mWidth / 2) - 2, (mWidth / 2) - 2) {
-
-                @Override
-                protected void drawPixel(int x, int y, SimpleColor c) {
-                    f.add(new Pixel(x, y, c));
-                }
-            }.drawEllipse(1);
-
-            f.add(new Pixel(0, 0, 255, counter++, 0));
-            counter = counter % mWidth;
-            wall.sendFrame(f);
+        final Frame f = new Frame();
+        new RainbowEllipse((mWidth / 2), (mHeight / 2), (mWidth / 2) - 1, (mWidth / 2) - 1) {
+        
+            @Override
+            protected void drawPixel(int x, int y, SimpleColor c) {
+                f.add(new Pixel(x, y, c));
+            }
+        }.drawEllipse(Math.abs(number / 10));
+        
+        wall.sendFrame(f);
         }
     }
 
@@ -144,13 +169,6 @@ public class WallConnector extends Activity implements SensorEventListener {
 
                         connect.setText(R.string.disconnect);
 
-                        // TODO move the following code into the handling of
-                        // motion sensors
-                        while (true) {
-                            Thread.sleep(50);
-                            handleNetwork();
-                        }
-
                     } catch (UnknownHostException e) {
                         System.err.println(e.getMessage());
                         Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
@@ -167,6 +185,10 @@ public class WallConnector extends Activity implements SensorEventListener {
                         wall = null;
                         connect.setText(R.string.connect);
                     }
+                } else {
+                    wall.close();
+                    wall = null;
+                    connect.setText(R.string.connect);
                 }
             }
         });
@@ -179,7 +201,7 @@ public class WallConnector extends Activity implements SensorEventListener {
          * - com.example.android.apis.os.RotationVectorDemo.java
          */
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(this, mSensor, 10000);
     }
 
