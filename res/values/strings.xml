@@ -4,8 +4,9 @@
     <string name="app_name">FcShake</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
-	<string name="connect">Connect</string>
-	<string name="connecting">Connecting...</string>
-	<string name="disconnect">Disconnect</string>
+	<string name="connect">Verbinden</string>
+	<string name="connecting">Starte Verbindung...</string>
+	<string name="disconnect">Trennen</string>
+	<string name="connectedToWall">Verbunden!</string>
 	<string name="stopped">Stopped</string>
 </resources>

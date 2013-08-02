@@ -19,6 +19,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 import de.c3ma.animation.RainbowEllipse;
 import de.c3ma.fullcircle.RawClient;
@@ -42,7 +43,10 @@ public class WallConnector extends Activity implements SensorEventListener {
     
     private int numberX;
     private int numberY;
+    private int radius;
     private int speed;
+    private Button mGuiConnect;
+    private TextView mGuiStatus;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -54,12 +58,19 @@ public class WallConnector extends Activity implements SensorEventListener {
         float z = event.values[2];
 //        Log.e("Sensor", "" + x + "\t" + y + "\t" +z);
         // X-axis
-        if (Math.abs(x) > 5) {
-            numberX ++;
-            speed = (int) x;
+        if (x < -2) {
+            numberX--;
+            if (numberX < radius)
+                numberX = radius;
+            speed = (int) (x / 10);
+        } else if (x > 2) {
+            numberX++;
+            if (numberX > mWidth - radius)
+                numberX = mWidth - radius;
+            speed = (int) (x / 10);
         } else if (Math.abs(y) > 5) {
-            numberY++;
-            speed += (int) y;
+            //numberY++;
+            speed += (int) (y / 10);
         }
         
         long actualTime = System.currentTimeMillis();
@@ -103,11 +114,19 @@ public class WallConnector extends Activity implements SensorEventListener {
                  * want to start to send something
                  */
                 wall.requestStart("android", 1, meta);
-                numberX = (mWidth / 2);
-                numberY = (mHeight / 2);
+                
+                if (mGuiStatus != null)
+                    mGuiStatus.setText(R.string.connecting);
+                if (mGuiConnect != null)
+                    mGuiConnect.setText(R.string.disconnect);
             } else if (got instanceof Start) {
                 System.out.println("We have a GOOO send some data!");
                 mSendFrames = true;
+                numberX = (mWidth / 2);
+                numberY = (mHeight / 2);
+                radius = (mWidth / 2) - 1;
+                if (mGuiStatus != null)
+                    mGuiStatus.setText(R.string.connectedToWall);
             } else if (got instanceof Timeout) {
                 System.out.println("Too slow, so we close the session");
                 wall.close();
@@ -121,8 +140,7 @@ public class WallConnector extends Activity implements SensorEventListener {
         if (mSendFrames) {
             final Frame f = new Frame();
             
-            
-                new RainbowEllipse(numberX, numberY,(mWidth / 2) - 1, (mWidth / 2) - 1) {
+                new RainbowEllipse(numberX, numberY, radius, radius) {
                 
                     @Override
                     protected void drawPixel(int x, int y, SimpleColor c) {
@@ -138,8 +156,9 @@ public class WallConnector extends Activity implements SensorEventListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wall_connector);
 
-        final Button connect = (Button) findViewById(R.id.btnConnect);
-        connect.setOnClickListener(new OnClickListener() {
+        this.mGuiConnect = (Button) findViewById(R.id.btnConnect);
+        this.mGuiStatus = (TextView) findViewById(R.id.textView1);
+        mGuiConnect.setOnClickListener(new OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -150,17 +169,14 @@ public class WallConnector extends Activity implements SensorEventListener {
                     try {
                         wall = new RawClient(domain);
                         Toast.makeText(getApplicationContext(), R.string.connecting, Toast.LENGTH_LONG).show();
-
+                        mGuiStatus.setText(R.string.connecting);
                         wall.requestInformation();
-
-
-                        connect.setText(R.string.disconnect);
 
                     } catch (UnknownHostException e) {
                         System.err.println(e.getMessage());
                         Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                         wall = null;
-                        connect.setText(R.string.connect);
+                        mGuiConnect.setText(R.string.connect);
                     } catch (IOException e) {
                         System.err.println(e.getMessage());
                         Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
@@ -169,7 +185,7 @@ public class WallConnector extends Activity implements SensorEventListener {
                 } else {
                     wall.close();
                     wall = null;
-                    connect.setText(R.string.connect);
+                    mGuiConnect.setText(R.string.connect);
                 }
             }
         });
