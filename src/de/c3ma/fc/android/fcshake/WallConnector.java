@@ -40,9 +40,9 @@ public class WallConnector extends Activity implements SensorEventListener {
 
     private long lastUpdate;
     
-    private int number;
-    private int updown;
-    private int horizontal;
+    private int numberX;
+    private int numberY;
+    private int speed;
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -54,18 +54,12 @@ public class WallConnector extends Activity implements SensorEventListener {
         float z = event.values[2];
 //        Log.e("Sensor", "" + x + "\t" + y + "\t" +z);
         // X-axis
-        if (Math.abs(x) > 2) {
-            number += (int) x;
-            updown = 0;
-            horizontal = 0;
-        } else if (Math.abs(y) > 2) {
-            updown += (int) y;
-            horizontal = 0;
-            number = 0;
-        } else if (Math.abs(z) > 2) {
-            horizontal += z;
-            number = 0;
-            updown = 0;
+        if (Math.abs(x) > 5) {
+            numberX ++;
+            speed = (int) x;
+        } else if (Math.abs(y) > 5) {
+            numberY++;
+            speed += (int) y;
         }
         
         long actualTime = System.currentTimeMillis();
@@ -109,6 +103,8 @@ public class WallConnector extends Activity implements SensorEventListener {
                  * want to start to send something
                  */
                 wall.requestStart("android", 1, meta);
+                numberX = (mWidth / 2);
+                numberY = (mHeight / 2);
             } else if (got instanceof Start) {
                 System.out.println("We have a GOOO send some data!");
                 mSendFrames = true;
@@ -119,38 +115,20 @@ public class WallConnector extends Activity implements SensorEventListener {
             }
         }
 
-        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (number / 10) + "\t" + updown + "\tsendFrames=" + mSendFrames);
+        Log.d("Wall", "Width " + mWidth + ", height " + mHeight + "\t" + (speed / 10) + "\t" + numberX + "x" + numberY + "\tsendFrames=" + mSendFrames);
         
         // send something... NOW
         if (mSendFrames) {
             final Frame f = new Frame();
             
-            if (horizontal != 0 && updown == 0) {
-                Log.v("Wall", "horizontal");
-                for (int i = 0; i < Math.min(horizontal / 10, mHeight) ; i++) {
-                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mWidth);
-                    for(int j=0; j < mHeight; j++) {
-                        f.add(new Pixel(i, j, color));
-                    }
-                }
-            } else if (updown != 0 && horizontal == 0) {
-                Log.v("Wall", "updown");
-                for (int i = 0; i < Math.min(updown / 10, mWidth); i++) {
-                    SimpleColor color = RainbowEllipse.mapRainbowColor(i, 0, this.mHeight);
-                    for(int j=0; j < mWidth; j++) {
-                        f.add(new Pixel(j, i, color));
-                    }
-                }
-            } else {
-                Log.v("Wall", "Circle");
-                new RainbowEllipse((mWidth / 2), (mHeight / 2), (mWidth / 2) - 1, (mWidth / 2) - 1) {
+            
+                new RainbowEllipse(numberX, numberY,(mWidth / 2) - 1, (mWidth / 2) - 1) {
                 
                     @Override
                     protected void drawPixel(int x, int y, SimpleColor c) {
                         f.add(new Pixel(x, y, c));
                     }
-                }.drawEllipse(Math.abs(number / 10));
-            }
+                }.drawEllipse(Math.abs(speed / 10));
             wall.sendFrame(f);
         }
     }
